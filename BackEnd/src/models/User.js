@@ -1,4 +1,3 @@
-const knex = require('../database/connection');
 const database = require('../database/connection');
 
 module.exports = {
@@ -6,13 +5,13 @@ module.exports = {
 	async findByCpf(cpf){
 
 		try{
-			const result = await database.select(['id', 'userType']).where({cpf: cpf}).table("usuarios");
+			const result = await database.select(['userType', 'password']).where({cpf: cpf}).table("usuarios");
 
 			if(result.length == 0){
-				return {status: false, err: 'Usuario não encontrado'}
+				return {status: false}
 			}  
-			console.log(result);
-			return {status: true, user: result};
+
+			return {status: true, user: result[0]};
 
 		} catch(err) {
 			console.error(err);
@@ -76,16 +75,17 @@ module.exports = {
 
 	async create(cpf, password, name, role, data) {
 
+		let realRole;
+		if(role == 0){
+			realRole = 'P'
+		} else if(role == 1){
+			realRole = 'M'
+		} else if(role == 2){
+			realRole = 'A'
+		}
+
 		try {
 			await database.transaction(async trans => {
-				let realRole;
-				if(role == 0){
-					realRole = 'P'
-				} else if(role == 1){
-					realRole = 'M'
-				} else if(role == 2){
-					realRole = 'A'
-				}
 
 				await trans.insert({cpf, password, name, userType: realRole}).table('usuarios').then(async id => {
 
@@ -96,7 +96,6 @@ module.exports = {
 					}
 
 				})
-
 			})
 		} catch(err) {
 			console.error(err);

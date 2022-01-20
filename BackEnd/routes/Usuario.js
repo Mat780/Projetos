@@ -4,10 +4,10 @@ const cors = require('cors');
 
 router.use(cors());
 
-const UserController = require('../controllers/UserController');
+const UserController = require('../src/controllers/UserController');
+const medAuth = require('../src/middlewares/medAuth');
 
 router.post('/login', UserController.login);
-router.post('/user', UserController.createUser);
-
+router.post('/user', medAuth , UserController.createUser);
 
 module.exports = router;

@@ -1,24 +1,41 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const validator = require('validator');
+const jwt = require('jsonwebtoken');
+const secret = require('../database/secret');
 
 module.exports = {
 	
 	async login(req, res) {
 		const { cpf , password } = req.body;
 
-		if(password == undefined){
+		if(password == undefined || password.length == 0 || password == ' '){
 			res.status(400);
-			res.json({err: 'Senha inválida'});
+			return res.json({err: 'Senha inválida'});
 		}
 
 		if(cpf.length == 11){
 			const isUser = await User.findByCpf(cpf);
-			//...
+			
+			if(isUser.status){
+				const isPasswordWright = await bcrypt.compare(password.toString(), isUser.user.password);
+				
+				if(isPasswordWright){
+					const userType = isUser.user.userType;
+					const token = jwt.sign({cpf, userType}, secret);
+
+					res.status(200);
+					return res.json({token: token, userType: userType});
+				}
+
+			} else {
+				res.status(400);
+				return res.json({err: 'Usuário não encontrado'});
+			}
 
 		} else {
 			res.status(400);
-			res.json({err: 'CPF inválido'});
+			return res.json({err: 'CPF inválido'});
 		}
 
 	},
@@ -37,24 +54,24 @@ module.exports = {
 			return res.json({err: 'CPF inválido, curto demais'});
 		}
 
-		if(password == undefined){
+		if(password == undefined || password.length == 0 || password == ' '){
 			res.status(400);
 			return res.json({err: 'Senha vazia'});
 		}
 
-		if(name == undefined){
+		if(name == undefined || name.length == 0 || name == ' '){
 			res.status(400);
 			return res.json({err: 'Nome vazio'});		
 		}
 
 		if(role == undefined){
 			role = 0;
-		} else if(role >= 0 && role <= 2){
+		} else if(role < 0 || role > 2){
 			res.status(400);
 			return res.json({err: 'Role inválida'});
 		}
 
-		if(data == undefined){
+		if(data == undefined || data.length == 0 || data == ' '){
 			res.status(400); 
 			return role == 0 ? res.json({err: 'Medico responsável não informado'}) : res.json({err: 'Especialidade não informada'});
 		} else {
@@ -117,9 +134,9 @@ module.exports = {
 			res.status(500);
 			return res.json({err: err, errMsg: 'Erro durante a criação do usuário'});
 		}
-		
 
-		res.json({msg: 'End of the road'})
+		res.status(200);
+		res.send('Cadastro concluído com sucesso');
 
 	}
 
